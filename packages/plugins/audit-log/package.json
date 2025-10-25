@@ -1,0 +1,20 @@
+{
+  "name": "@strapi/plugin-audit-log",
+  "version": "1.0.0",
+  "description": "Audit logging plugin for Strapi",
+  "main": "server/index.js",
+  "strapi": {
+    "name": "audit-log",
+    "displayName": "Audit Log",
+    "description": "Audit logging plugin for Strapi",
+    "kind": "plugin"
+  },
+  "dependencies": {
+    "bullmq": "^4.0.0",
+    "lodash": "^4.17.21",
+    "uuid": "^9.0.0"
+  },
+  "peerDependencies": {
+    "@strapi/strapi": "^5.0.0"
+  }
+}
