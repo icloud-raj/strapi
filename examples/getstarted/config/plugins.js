@@ -37,7 +37,7 @@ module.exports = () => ({
   },
   'audit-log': {
     enabled: true,
-    resolve: `../../packages/plugins/audit-log`, // From the monorepo packages
+    resolve: `../../packages/plugins/audit-log`, // Point back to source folder
     config: {
       mode: 'sync',                    // 'sync' or 'async'
       backend: 'db-file',              // 'db', 'db-file', 'db-s3'

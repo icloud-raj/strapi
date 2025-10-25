@@ -14,6 +14,6 @@ module.exports = () => ({
     canReadLogs: require('./policies/canReadLogs') 
   },
   contentTypes: { 
-    'audit-log': require('./content-types/audit-log/schema.json') 
+    'audit-log': { schema: require('./content-types/audit-log') }
   }
 });

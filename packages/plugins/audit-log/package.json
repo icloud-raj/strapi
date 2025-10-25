@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Audit logging plugin for Strapi",
   "main": "server/index.js",
+  "exports": {
+    "./strapi-server": "./server/index.js"
+  },
   "strapi": {
     "name": "audit-log",
     "displayName": "Audit Log",
