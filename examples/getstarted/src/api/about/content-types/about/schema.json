@@ -15,7 +15,7 @@
     }
   },
   "attributes": {
-    "title": {
+    "postTitle": {
       "type": "string",
       "pluginOptions": {
         "i18n": {
@@ -50,7 +50,12 @@
         }
       },
       "multiple": false,
-      "allowedTypes": ["images", "files", "videos", "audios"]
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
     },
     "dynamiczone": {
       "type": "dynamiczone",
@@ -59,7 +64,11 @@
           "localized": true
         }
       },
-      "components": ["basic.simple", "blog.test-como", "default.closingperiod"]
+      "components": [
+        "basic.simple",
+        "blog.test-como",
+        "default.closingperiod"
+      ]
     }
   }
 }
