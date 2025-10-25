@@ -35,4 +35,25 @@ module.exports = () => ({
     enabled: false,
     resolve: `../plugins/todo-example`, // From the /examples/plugins folder
   },
+  'audit-log': {
+    enabled: true,
+    resolve: `../../packages/plugins/audit-log`, // From the monorepo packages
+    config: {
+      mode: 'sync',                    // 'sync' or 'async'
+      backend: 'db-file',              // 'db', 'db-file', 'db-s3'
+      excludeContentTypes: [
+        'plugin::audit-log.audit-log', // Don't audit the audit logs
+        'admin::user',                 // Exclude sensitive content types
+        'plugin::upload.file'
+      ],
+      queue: {
+        redis: 'redis://localhost:6379'
+      },
+      storage: {
+        file: {
+          basePath: './data/audit_blobs'
+        }
+      }
+    }
+  }
 });
