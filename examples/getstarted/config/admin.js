@@ -1,5 +1,8 @@
 module.exports = ({ env }) => ({
   // autoOpen: false,
+  watchIgnoreFiles: [
+    '**/data/**', // Ignore audit log files and other data files
+  ],
   auth: {
     secret: env('ADMIN_JWT_SECRET', 'example-token'),
     sessions: {
