@@ -11,7 +11,12 @@ module.exports = async ({ strapi }) => {
     },
   ];
   
-  await strapi.service('admin::permission').actionProvider.registerMany(RBAC_ACTIONS);
+  try {
+    await strapi.service('admin::permission').actionProvider.registerMany(RBAC_ACTIONS);
+  } catch (error) {
+    strapi.log.error('[audit-log] Failed to register permissions:', error);
+    return; // Exit early if permission registration fails
+  }
   
   const cfg = strapi.config.get('plugin::audit-log.config', {});
   
@@ -39,54 +44,58 @@ module.exports = async ({ strapi }) => {
     .filter(uid => !excluded.includes(uid));
   
   // Subscribe to lifecycle events
-  const unsubscribe = strapi.db.lifecycles.subscribe({
-    models: uids,
+  try {
+    const unsubscribe = strapi.db.lifecycles.subscribe({
+      models: uids,
+      
+      async afterCreate(event) {
+        // Only record events after Strapi is fully loaded
+        if (!strapi.isLoaded) return;
+        
+        // Skip audit logs themselves
+        if (event.model.uid === 'plugin::audit-log.audit-log') return;
+        
+        const recordId = event.result?.id || event.result?.documentId;
+        strapi.log.info(`[audit-log] Recording create for ${event.model.uid} id=${recordId}`);
+        
+        await strapi.plugin('audit-log').service('audit-logger')
+          .record({ action: 'create', event });
+      },
+      
+      async afterUpdate(event) {
+        // Only record events after Strapi is fully loaded
+        if (!strapi.isLoaded) return;
+        
+        // Skip audit logs themselves
+        if (event.model.uid === 'plugin::audit-log.audit-log') return;
+        
+        const recordId = event.result?.id || event.result?.documentId;
+        strapi.log.info(`[audit-log] Recording update for ${event.model.uid} id=${recordId}`);
+        
+        await strapi.plugin('audit-log').service('audit-logger')
+          .record({ action: 'update', event });
+      },
+      
+      async afterDelete(event) {
+        // Only record events after Strapi is fully loaded
+        if (!strapi.isLoaded) return;
+        
+        // Skip audit logs themselves
+        if (event.model.uid === 'plugin::audit-log.audit-log') return;
+        
+        const recordId = event.params?.where?.id || event.params?.where?.documentId;
+        strapi.log.info(`[audit-log] Recording delete for ${event.model.uid} id=${recordId}`);
+        
+        await strapi.plugin('audit-log').service('audit-logger')
+          .record({ action: 'delete', event });
+      }
+    });
     
-    async afterCreate(event) {
-      // Only record events after Strapi is fully loaded
-      if (!strapi.isLoaded) return;
-      
-      // Skip audit logs themselves
-      if (event.model.uid === 'plugin::audit-log.audit-log') return;
-      
-      const recordId = event.result?.id || event.result?.documentId;
-      strapi.log.info(`[audit-log] Recording create for ${event.model.uid} id=${recordId}`);
-      
-      await strapi.plugin('audit-log').service('audit-logger')
-        .record({ action: 'create', event });
-    },
+    // Store unsubscribe function for cleanup
+    strapi.plugin('audit-log').unsubscribe = unsubscribe;
     
-    async afterUpdate(event) {
-      // Only record events after Strapi is fully loaded
-      if (!strapi.isLoaded) return;
-      
-      // Skip audit logs themselves
-      if (event.model.uid === 'plugin::audit-log.audit-log') return;
-      
-      const recordId = event.result?.id || event.result?.documentId;
-      strapi.log.info(`[audit-log] Recording update for ${event.model.uid} id=${recordId}`);
-      
-      await strapi.plugin('audit-log').service('audit-logger')
-        .record({ action: 'update', event });
-    },
-    
-    async afterDelete(event) {
-      // Only record events after Strapi is fully loaded
-      if (!strapi.isLoaded) return;
-      
-      // Skip audit logs themselves
-      if (event.model.uid === 'plugin::audit-log.audit-log') return;
-      
-      const recordId = event.params?.where?.id || event.params?.where?.documentId;
-      strapi.log.info(`[audit-log] Recording delete for ${event.model.uid} id=${recordId}`);
-      
-      await strapi.plugin('audit-log').service('audit-logger')
-        .record({ action: 'delete', event });
-    }
-  });
-  
-  // Store unsubscribe function for cleanup
-  strapi.plugin('audit-log').unsubscribe = unsubscribe;
-  
-  strapi.log.info('[audit-log] Plugin initialized successfully');
+    strapi.log.info('[audit-log] Plugin initialized successfully');
+  } catch (error) {
+    strapi.log.error('[audit-log] Failed to initialize lifecycle hooks:', error);
+  }
 };
