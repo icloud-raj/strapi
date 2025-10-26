@@ -1,18 +1,18 @@
 'use strict';
 
-module.exports = async (ctx, next) => {
-  const user = ctx.state.user;
+module.exports = (policyContext) => {
+  const { user, userAbility } = policyContext.state;
   
+  // User must be authenticated
   if (!user) {
-    return ctx.unauthorized('Authentication required');
+    return false;
   }
   
-  // Super Admin or root users have access
-  if (user.role?.name === 'Super Admin' || user.role?.type === 'root') {
-    return next();
+  // User must have ability object
+  if (!userAbility) {
+    return false;
   }
   
-  // Check for specific audit log permission
-  // This would need to be implemented based on your permission system
-  return ctx.forbidden('read_audit_logs permission required');
+  // Check if user has read_audit_logs permission using CASL ability
+  return userAbility.can('plugin::audit-log.read', null);
 };

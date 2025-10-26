@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const _ = require('lodash');
 
 module.exports = ({ strapi }) => {
-  const cfg = strapi.config.get('plugin.audit-log.config', {});
+  const cfg = strapi.config.get('plugin::audit-log.config', {});
   const backend = require(`./backends/${cfg.backend || 'db-file'}`)({ strapi, config: cfg });
   
   // Smart diff algorithm
@@ -37,25 +37,47 @@ module.exports = ({ strapi }) => {
         const model = event.model || {};
         const result = event.result || {};
         const params = event.params || {};
-        const state = event.state || {};
         
-        // Extract user information
-        const user = state.auth?.credentials?.user || 
-                    state.user || 
-                    null;
+        // Safety check: prevent recording audit logs of audit logs (redundant but safe)
+        if (model.uid === 'plugin::audit-log.audit-log') {
+          return;
+        }
+        
+        // Extract user information from request context (Strapi v5 way)
+        const requestState = strapi.requestContext?.get()?.state;
+        const user = requestState?.user || null;
+        
+        // Determine record ID
+        const recordId = result?.id || result?.documentId || params?.where?.id || params?.where?.documentId;
+        if (!recordId) {
+          strapi.log.warn('[audit-log] Could not determine record ID for audit log');
+          return;
+        }
         
         // Build metadata
         const meta = {
           eventId: uuidv4(),
           action,
           contentType: model.uid || 'unknown',
-          recordId: String(result?.id || params?.where?.id || uuidv4()),
-          user: user?.id || null,
+          recordId: String(recordId),
+          userId: user?.id || null,
           timestamp: new Date().toISOString()
         };
         
+        // For updates, fetch the before state if not provided by lifecycle hook
+        let dataBefore = params.dataBefore;
+        if (action === 'update' && !dataBefore && recordId) {
+          try {
+            dataBefore = await strapi.db.query(model.uid).findOne({
+              where: { id: recordId }
+            });
+          } catch (err) {
+            strapi.log.debug('[audit-log] Could not fetch before state:', err.message);
+          }
+        }
+        
         // Calculate diff
-        const diffData = diff(action, params.dataBefore, result);
+        const diffData = diff(action, dataBefore, result);
         meta.changedKeys = Object.keys(diffData || {});
         
         // Write via backend (sync or async based on config)
@@ -68,6 +90,7 @@ module.exports = ({ strapi }) => {
         
       } catch (error) {
         strapi.log.error('[audit-log] Failed to record audit log:', error);
+        // Don't rethrow - we don't want audit failures to break the main operation
       }
     }
   };

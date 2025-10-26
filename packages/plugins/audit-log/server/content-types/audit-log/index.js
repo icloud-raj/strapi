@@ -8,7 +8,30 @@ module.exports = {
     pluralName: 'audit-logs'
   },
   options: {
-    draftAndPublish: false
+    draftAndPublish: false,
+    // Add indexes for efficient querying
+    indexes: [
+      {
+        name: 'audit_logs_content_type_idx',
+        columns: ['content_type'],
+      },
+      {
+        name: 'audit_logs_user_id_idx',
+        columns: ['user_id'],
+      },
+      {
+        name: 'audit_logs_action_idx',
+        columns: ['action'],
+      },
+      {
+        name: 'audit_logs_timestamp_idx',
+        columns: ['timestamp'],
+      },
+      {
+        name: 'audit_logs_composite_idx',
+        columns: ['content_type', 'action', 'timestamp'],
+      },
+    ],
   },
   pluginOptions: {
     'content-manager': {
@@ -29,16 +52,17 @@ module.exports = {
       type: 'string',
       required: true
     },
-    user: {
-      type: 'relation',
-      relation: 'oneToOne',
-      target: 'admin::user'
+    userId: {
+      type: 'integer'
     },
     timestamp: {
       type: 'datetime',
       required: true
     },
     changedKeys: {
+      type: 'json'
+    },
+    diff: {
       type: 'json'
     },
     blobPath: {

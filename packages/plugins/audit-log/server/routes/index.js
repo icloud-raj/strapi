@@ -3,8 +3,9 @@
 const auditLogRoutes = require('./audit-log');
 
 module.exports = {
-  'content-api': {
-    type: 'content-api',
+  'admin': {
+    type: 'admin',
+    prefix: '', // Remove default /audit-log prefix
     routes: auditLogRoutes(),
   },
 };

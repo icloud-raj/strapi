@@ -6,7 +6,7 @@ module.exports = () => [
     path: '/audit-logs',
     handler: 'audit-log.find',
     config: {
-      auth: false
+      policies: ['plugin::audit-log.canReadLogs']
     }
   },
   {
@@ -14,7 +14,7 @@ module.exports = () => [
     path: '/audit-logs/:id/blob',
     handler: 'audit-log.findOneBlob',
     config: {
-      auth: false
+      policies: ['plugin::audit-log.canReadLogs']
     }
   }
 ];

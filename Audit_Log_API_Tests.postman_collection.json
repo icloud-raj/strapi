@@ -1,0 +1,577 @@
+{
+  "info": {
+    "name": "Strapi Audit Log API Tests",
+    "description": "Complete test suite for audit log plugin",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:1337",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login (Get JWT Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.data.token);",
+                  "    pm.environment.set('jwt_token', jsonData.data.token);",
+                  "    console.log('JWT Token saved:', jsonData.data.token);",
+                  "} else {",
+                  "    console.log('Login failed');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rajalive28@gmail.com\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "admin",
+                "login"
+              ]
+            },
+            "description": "Login to get JWT token. Token is automatically saved to collection variable."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Generate Test Data",
+      "item": [
+        {
+          "name": "Create About Content (Generates Audit Log)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"postTitle\": \"Test About Page\",\n  \"content\": \"This is test content to generate audit logs\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/content-manager/single-types/api::about.about",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "content-manager",
+                "single-types",
+                "api::about.about"
+              ]
+            },
+            "description": "Create/update content to generate audit log entries"
+          },
+          "response": []
+        },
+        {
+          "name": "Publish About Content (Generates Multiple Logs)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/content-manager/single-types/api::about.about/actions/publish",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "content-manager",
+                "single-types",
+                "api::about.about",
+                "actions",
+                "publish"
+              ]
+            },
+            "description": "Publishing generates multiple audit logs (delete draft + create published)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Audit Log Queries - Basic",
+      "item": [
+        {
+          "name": "List All Audit Logs (Default)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ]
+            },
+            "description": "Get all audit logs with default pagination (10 items)"
+          },
+          "response": []
+        },
+        {
+          "name": "List Audit Logs (Custom Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?_limit=25&_page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "_limit",
+                  "value": "25",
+                  "description": "Number of items per page"
+                },
+                {
+                  "key": "_page",
+                  "value": "1",
+                  "description": "Page number"
+                }
+              ]
+            },
+            "description": "Get audit logs with custom pagination (25 per page)"
+          },
+          "response": []
+        },
+        {
+          "name": "List Audit Logs (Sorted Ascending)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?_sort=timestamp:asc&_limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "_sort",
+                  "value": "timestamp:asc",
+                  "description": "Sort by timestamp ascending (oldest first)"
+                },
+                {
+                  "key": "_limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get oldest audit logs first"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Audit Log Queries - Filtered",
+      "item": [
+        {
+          "name": "Filter by Content Type",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?contentType=api::about.about&_limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "contentType",
+                  "value": "api::about.about",
+                  "description": "Filter by specific content type"
+                },
+                {
+                  "key": "_limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get audit logs only for 'about' content type"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Action Type (Create)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?action=create&_limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "create",
+                  "description": "Filter by action: create, update, or delete"
+                },
+                {
+                  "key": "_limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get only 'create' action logs"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Action Type (Update)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?action=update&_limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "update"
+                },
+                {
+                  "key": "_limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get only 'update' action logs"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Action Type (Delete)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?action=delete&_limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "delete"
+                },
+                {
+                  "key": "_limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get only 'delete' action logs"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by User ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?userId=1&_limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "1",
+                  "description": "Filter by user ID"
+                },
+                {
+                  "key": "_limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get audit logs for specific user"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Date Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?startDate=2025-10-01&endDate=2025-10-31&_limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2025-10-01",
+                  "description": "Start date (ISO format)"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-10-31",
+                  "description": "End date (ISO format)"
+                },
+                {
+                  "key": "_limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get audit logs within date range"
+          },
+          "response": []
+        },
+        {
+          "name": "Combined Filters (Content Type + Action)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?contentType=api::about.about&action=update&_limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "contentType",
+                  "value": "api::about.about"
+                },
+                {
+                  "key": "action",
+                  "value": "update"
+                },
+                {
+                  "key": "_limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get update logs for specific content type"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Audit Log Details",
+      "item": [
+        {
+          "name": "Get Specific Audit Log Detail (ID 1)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs/1/blob",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs",
+                "1",
+                "blob"
+              ]
+            },
+            "description": "Get detailed diff data for audit log ID 1. Change the ID to match your data."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Specific Audit Log Detail (ID 2)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs/2/blob",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs",
+                "2",
+                "blob"
+              ]
+            },
+            "description": "Get detailed diff data for audit log ID 2"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Permission Tests",
+      "item": [
+        {
+          "name": "Test Without Token (Should Fail 401)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?_limit=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "_limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Test without authentication - should return 401 Unauthorized"
+          },
+          "response": []
+        },
+        {
+          "name": "Test With Token (Should Work if Has Permission)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?_limit=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "_limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Test with valid token - should work if user has 'read_audit_logs' permission"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Database Verification",
+      "item": [
+        {
+          "name": "Check Audit Logs Table (via SQL)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/audit-logs?_limit=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "_limit",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Get one record to verify database structure. Run this SQL to see raw data:\n\nSELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT 5;"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+
